@@ -14,6 +14,7 @@ setup:
 
 
 
+
 grafana:
 	echo deb https://packages.grafana.com/oss/deb stable main | sudo tee /etc/apt/sources.list.d/grafana.list
 	curl https://packages.grafana.com/gpg.key | sudo apt-key add -
@@ -28,6 +29,9 @@ geth:
 	tar -xvf geth-linux-amd64-1.7.0-6c6c7b2a.tar.gz
 	mv geth-linux-amd64-1.7.0-6c6c7b2a ~/projects/
 	rm -r geth*
+	touch ~/projects/geth-linux-amd64-1.7.0-6c6c7b2a/password.txt
+	echo password > ~/projects/geth-linux-amd64-1.7.0-6c6c7b2a/password.txt
+	cp miner/genesis-data.json /home/riaps/projects/geth-linux-amd64-1.7.0-6c6c7b2a
 
 influx:
 	curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -

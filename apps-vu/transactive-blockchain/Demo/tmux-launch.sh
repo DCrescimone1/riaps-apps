@@ -46,12 +46,12 @@ tmux select-pane -t env.$riapsctl -T "RIAPSCTRL"
 tmux send-keys -t env.$riapsctl "cd $DIR/$PROJECT/pkg" C-m
 tmux send-keys -t env.$riapsctl "riaps_ctrl" C-m
 
-tmux select-pane -t env.$miner -T "MINER"
-tmux send-keys -t env.$miner "cd $GETH" C-m
-tmux send -t env.$miner "pwd ; ./geth --datadir eth/  init genesis-data.json" ENTER
-tmux send -t env.$miner "./geth account new --password password.txt --datadir eth/" ENTER
-sleep 5
-tmux send -t env.$miner "./geth --datadir eth/ --rpc --rpcport $PORT --rpcaddr $MINER --nodiscover --rpcapi 'eth,web3,admin,miner,net,db' --password password.txt --unlock 0 --networkid 15 --mine |& tee miner.out" ENTER
+# tmux select-pane -t env.$miner -T "MINER"
+# tmux send-keys -t env.$miner "cd $GETH" C-m
+# tmux send -t env.$miner "pwd ; ./geth --datadir eth/  init genesis-data.json" ENTER
+# tmux send -t env.$miner "./geth account new --password password.txt --datadir eth/" ENTER
+# sleep 5
+# tmux send -t env.$miner "./geth --datadir eth/ --rpc --rpcport $PORT --rpcaddr $MINER --nodiscover --rpcapi 'eth,web3,admin,miner,net,db' --password password.txt --unlock 0 --networkid 15 --mine |& tee miner.out" ENTER
 
 tmux select-pane -t env.$recorder -T "Recorder"
 tmux send-keys -t env.$recorder "ssh -p $SSHPORT -i $SSHKEY $RECORDER" C-m
