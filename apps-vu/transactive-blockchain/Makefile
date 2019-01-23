@@ -24,9 +24,10 @@ grafana:
 	sudo systemctl enable grafana-server.service
 
 geth:
-	wget https://gethstore.blob.core.windows.net/builds/geth-linux-arm5-1.7.0-6c6c7b2a.tar.gz
-	tar -xvf geth-linux-arm5-1.7.0-6c6c7b2a.tar.gz
-	mv geth-linux-arm5-1.7.0-6c6c7b2a ~/projects/
+	wget https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.7.0-6c6c7b2a.tar.gz
+	tar -xvf geth-linux-amd64-1.7.0-6c6c7b2a.tar.gz
+	mv geth-linux-amd64-1.7.0-6c6c7b2a ~/projects/
+	rm -r geth*
 
 influx:
 	curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -

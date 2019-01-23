@@ -1,12 +1,19 @@
 import fabric.api as fabi
 import os
-from dotenv import load_dotenv
-load_dotenv()
+import dotenv
+path = dotenv.find_dotenv('.env', usecwd=True)
+dotenv.load_dotenv(path)
+path = dotenv.find_dotenv('.myenv', usecwd=True)
+dotenv.load_dotenv(path)
 
 USER=os.getenv('USER')
 PASS=os.getenv('PASS')
 SSHKEY=os.getenv('SSHKEY')
-SSHPORT=os.getenv('SSHPORT')
+SSHPORT=os.environ.get('SSHPORT')
+print(USER)
+print(PASS)
+print(SSHKEY)
+print(SSHPORT)
 
 print(os.getenv('BBBs'))
 BBBs=os.getenv('BBBs')[1:-1].split(" ")
