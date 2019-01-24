@@ -59,7 +59,7 @@ tmux send-keys -t env.$recorder 'sudo journalctl -f -u riaps-deplo.service --sin
 #
 
 
-tmux select-pane -t app.$solver -T "Solver"
+tmux select-pane -t app.$solver -T "deplo/solver"
 tmux send-keys -t app.$solver "echo '$PASS' | sudo -E -S riaps_deplo" C-m
 #
 
