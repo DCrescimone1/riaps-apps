@@ -55,28 +55,28 @@ tmux send-keys -t env.$riapsctl "riaps_ctrl" C-m
 
 tmux select-pane -t env.$recorder -T "Recorder"
 tmux send-keys -t env.$recorder "ssh -p $SSHPORT -i $SSHKEY $RECORDER" C-m
-tmux send-keys -t env.$recorder 'sudo journalctl -f -u riaps-deplo.service --since "10 min ago"' C-m
+tmux send-keys -t env.$recorder 'sudo journalctl -f -u riaps-deplo.service --since "10 min ago" | tee recorder.log' C-m
 #
 
 
 tmux select-pane -t app.$solver -T "deplo/solver"
-tmux send-keys -t app.$solver "echo '$PASS' | sudo -E -S riaps_deplo" C-m
+tmux send-keys -t app.$solver "echo '$PASS' | sudo -E -S riaps_deplo | tee dps.log" C-m
 #
 
 tmux select-pane -t app.$dso -T "DSO"
 tmux send-keys -t app.$dso "ssh -p $SSHPORT -i $SSHKEY $DSO" C-m
-tmux send-keys -t app.$dso 'sudo journalctl -f -u riaps-deplo.service --since "10 min ago"' C-m
+tmux send-keys -t app.$dso 'sudo journalctl -f -u riaps-deplo.service --since "10 min ago" | tee dso.log' C-m
 #
 
 tmux select-pane -t app.$t101 -T "Trader 101"
 tmux send-keys -t app.$t101 "ssh -p $SSHPORT -i $SSHKEY $T101" C-m
-tmux send-keys -t app.$t101 'sudo journalctl -f -u riaps-deplo.service --since "10 min ago"' C-m
+tmux send-keys -t app.$t101 'sudo journalctl -f -u riaps-deplo.service --since "10 min ago" | tee node.log' C-m
 #
 
 tmux select-pane -t app.$t106 -T "Trader 106"
 # tmux send-keys -t app.$t106 "sshpass -p 'riaps' ssh $T106" C-m
 tmux send-keys -t app.$t106 "ssh -p $SSHPORT -i $SSHKEY $T106" C-m
-tmux send-keys -t app.$t106 'sudo journalctl -f -u riaps-deplo.service --since "10 min ago"' C-m
+tmux send-keys -t app.$t106 'sudo journalctl -f -u riaps-deplo.service --since "10 min ago" | tee peer.log' C-m
 # tmux send-keys -t app.$t106 'sudo journalctl -f -b -u riaps-deplo.service > pre.log' C-m
 
 #

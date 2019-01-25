@@ -10,7 +10,11 @@ setup:
 	make geth
 	make grafana
 	make influx
-	pip3 install scipy
+	sudo pip3 install scipy
+	sudo pip3 install numpy
+	
+
+
 
 
 
