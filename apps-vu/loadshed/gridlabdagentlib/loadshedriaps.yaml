@@ -1,0 +1,7 @@
+name: loadshedriaps
+time_delta: 1s
+broker: tcp://localhost:5570
+values:
+    distribution_load:
+        topic: gridlabdSimulator1/distribution_load
+        default: 100
