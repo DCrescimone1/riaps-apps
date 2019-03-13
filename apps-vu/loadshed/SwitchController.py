@@ -13,10 +13,12 @@ class SwitchController(Component):
         now = time.ctime(int(time.time()))
         self.logger.info("(PID %s)-starting SwitchController, %s" % (str(self.pid),str(now)))
         self.comm = 1
-        
-    def handleActivate(self):
         self.gridagent = gridlabdagent()
         self.logger.info("agent created")
+        
+#     def handleActivate(self):
+#         self.gridagent = gridlabdagent()
+#         self.logger.info("agent created")
 
 
     '''def on_clock(self):

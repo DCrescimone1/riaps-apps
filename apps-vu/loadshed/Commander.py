@@ -2,6 +2,7 @@ from riaps.run.comp import Component
 import logging
 import os
 import time
+from riaps.run.exc import PortError
 
 class Commander(Component):
     def __init__(self):
@@ -14,12 +15,16 @@ class Commander(Component):
     def on_clock(self):
         
         now = self.clock.recv_pyobj()
-        time.sleep(5)
+#         time.sleep(10)
         if self.pending == 0:
             self.logger.info("on_clock(): PID %s, %s" % (str(self.pid),str(now)))
-            self.pending = 1
-            self.sensorvalrecd.send_pyobj("distribution_load")
-            self.logger.info("sent")
+            try:
+                self.sensorvalrecd.send_pyobj("distribution_load")
+                self.pending = 1
+                self.logger.info("sent")
+            except PortError as e:
+                self.logger.error("Error sending: %d"  % e.errno )
+                self.pending = 0
         
     def on_sensorvalrecd(self):
         msg = self.sensorvalrecd.recv_pyobj()
