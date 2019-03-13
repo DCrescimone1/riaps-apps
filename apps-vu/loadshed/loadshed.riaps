@@ -1,0 +1,32 @@
+// RIAPS TESP Interface
+
+app loadshed {
+    message CommandReq;
+    message CommandRep;
+    message SenseValReq;
+    message SenseValRep;
+    
+	library gridlabdagentlib;
+     
+    device SwitchController {
+  //    timer clock 10000; 							
+		rep recvsensorreq : (SenseValReq, SenseValRep);
+		rep recvcmd : (CommandReq, CommandRep);
+		
+    }
+    
+    component Commander {
+    	timer clock 1000;
+    	req sensorvalrecd : (SenseValReq, SenseValRep);
+    	req sendcmd : (CommandReq, CommandRep);
+    }
+
+    actor ControllerActor {
+    	local SenseValReq,SenseValRep,CommandReq,CommandRep;
+       {  
+          sw_loadshed: SwitchController;
+          gridlabdcommander : Commander;				
+       }
+    }
+    
+} 
