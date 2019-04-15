@@ -3,28 +3,31 @@
 app loadshed {
     message CommandReq;
     message CommandRep;
-    message SenseValReq;
-    message SenseValRep;
+    //message SenseValReq;
+    //message SenseValRep;
+    message SenseVal;
     
-	library gridlabdagentlib;
+	//library gridlabdagentlib;
      
-    device SwitchController {
+    device SwitchController(ip = "localhost", pub_port = "5560", sub_port = "5559", topic = "distribution_load") {
   //    timer clock 10000; 							
-		rep recvsensorreq : (SenseValReq, SenseValRep);
+		//rep recvsensorreq : (SenseValReq, SenseValRep);
 		rep recvcmd : (CommandReq, CommandRep);
+		pub sendrdg : SenseVal;
+		inside trigger;
 		
     }
     
     component Commander {
-    	timer clock 1000;
-    	req sensorvalrecd : (SenseValReq, SenseValRep);
+    	//timer clock 5000;
+    	sub sensorvalrecd : SenseVal;
     	req sendcmd : (CommandReq, CommandRep);
     }
 
-    actor ControllerActor {
-    	local SenseValReq,SenseValRep,CommandReq,CommandRep;
+    actor ControllerActor(ip = "localhost", pub_port = "5560", sub_port = "5559", topic = "distribution_load") {
+    	local SenseVal,CommandReq,CommandRep;
        {  
-          sw_loadshed: SwitchController;
+          sw_loadshed: SwitchController(ip = ip, pub_port = pub_port, sub_port = sub_port, topic = topic);
           gridlabdcommander : Commander;				
        }
     }

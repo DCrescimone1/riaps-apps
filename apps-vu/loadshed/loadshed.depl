@@ -1,4 +1,4 @@
 // Deploy on all BBB
 app loadshed {
-	on (192.168.1.104) ControllerActor;
+	on (192.168.1.105) ControllerActor(ip = "localhost", pub_port = "5786", sub_port = "5569", topic = "distribution_load");
 }
