@@ -11,7 +11,8 @@ import requests
 
 from time import time, sleep
 
-from libs.config import *
+import libs.config as cfg
+# from libs.config import *
 from libs.MatchingSolver import MatchingSolver, Offer
 from libs.EthereumClient import EthereumClient
 from libs.MatchingContract import MatchingContract
@@ -59,7 +60,8 @@ class Solver(Component):
         self.selling_offers = []
         self.finalized = -1
         self.waiting_solutionID = False
-        self.PREDICTION_WINDOW = 5
+        self.PREDICTION = False
+        self.PREDICTION_WINDOW = cfg.PREDICTION_WINDOW
         self.recordTime = False
         self.interval_trades ={}
         self.solutions ={}
@@ -355,14 +357,16 @@ class Solver(Component):
                 error = timer['split'] - self.DeadLine
                 self.dbase.post(now=now, tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="error", value=error)
 
-                self.priorPW = self.PREDICTION_WINDOW
-                self.PREDICTION_WINDOW = self.PREDICTION_WINDOW +5 #- self.Pgain*error
-                if self.PREDICTION_WINDOW < 0:
-                    self.PREDICTION_WINDOW =0
-                if self.PREDICTION_WINDOW > self.PWMax:
-                    self.PREDICTION_WINDOW = self.PWMax
 
-                self.dbase.post(now=now, tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="PW", value=self.PREDICTION_WINDOW)
+                if not self.PREDICTION:
+                    self.priorPW = self.PREDICTION_WINDOW
+                    self.PREDICTION_WINDOW = self.PREDICTION_WINDOW +5 #- self.Pgain*error
+                    if self.PREDICTION_WINDOW < 0:
+                        self.PREDICTION_WINDOW =0
+                    if self.PREDICTION_WINDOW > self.PWMax:
+                        self.PREDICTION_WINDOW = self.PWMax
+                    self.dbase.post(now=now, tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="PW", value=self.PREDICTION_WINDOW)
+
                 self.dbase.post(now=now, tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="on_solve_time", value=timer["split"])
                 self.dbase.post(now=now, tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="solveTime", value=stopWatch["split"])
 
@@ -388,20 +392,23 @@ class Solver(Component):
         now = datetime.datetime.now()
         memNow = self.thisProcess.memory_info()
         self.logger.warning('handleMEMLimit(): %s' %str(memNow))
-        self.PWMax = self.priorPW-1
-        self.dbase.post(now=now, tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="RSSNow", value=memNow[0])
-        self.dbase.post(now=now, tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="PWMax", value=self.PWMax)
+        if not self.PREDICTION:
+            self.PWMax = self.priorPW-1
+            self.dbase.post(now=now, tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="RSSNow", value=memNow[0])
+            self.dbase.post(now=now, tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="PWMax", value=self.PWMax)
 
     def handleDeadline(self,funcName):
         self.logger.warning("handleDeadline(): %s" % funcName)
         #if self.self.Pgain += 1
-        self.PWMax = self.priorPW-1
-        self.dbase.post(now=datetime.datetime.now(), tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="PWMax", value=self.PWMax)
+        if not self.PREDICTION:
+            self.PWMax = self.priorPW-1
+            self.dbase.post(now=datetime.datetime.now(), tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="PWMax", value=self.PWMax)
 
     def handleCPULimit(self):
         self.logger.warning('handleCPULimit()')
-        self.PWMax = self.priorPW-1
-        self.dbase.post(now=datetime.datetime.now(), tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="PWMax", value=self.PWMax)
+        if not self.PREDICTION:
+            self.PWMax = self.priorPW-1
+            self.dbase.post(now=datetime.datetime.now(), tag_dict={"object":"Solver_"+str(self.solverID)}, seriesName="PWMax", value=self.PWMax)
 
     def handleNICStateChange(self, state):
         if state=="down":

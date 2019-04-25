@@ -16,10 +16,13 @@ BYTECODE = "0x60606040526000600360006101000a81548167ffffffffffffffff021916908367
 SOLVING_INTERVAL = 5 # seconds (how often MatchingSolverWrapper tries to solve the energy trading problem)
 INTERVAL_LENGTH = 120 # seconds (how often the components move onto the next time interval)
 
-START_INTERVAL = 27 # first time interval
+START_INTERVAL = 32 # first time interval
 END_INTERVAL = 100 # last time interval
-PREDICTION_WINDOW = END_INTERVAL-START_INTERVAL # how many time intervals ahead SmartHomeTraderWrapper trade (i.e., an offer is posted if offer['start'] <= time_interval + PREDICTION_WINDOW)
+# PREDICTION_WINDOW = END_INTERVAL-START_INTERVAL # how many time intervals ahead SmartHomeTraderWrapper trade (i.e., an offer is posted if offer['start'] <= time_interval + PREDICTION_WINDOW)
+PREDICTION_WINDOW = 0
 
+__RATED_POWER__ = 5000 #watts
+__LOGICAL_INTERVAL__ = .25 #hrs
 
 FEEDERS = []
 PROSUMERS = []

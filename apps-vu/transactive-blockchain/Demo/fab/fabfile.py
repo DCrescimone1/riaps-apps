@@ -62,6 +62,7 @@ def kill(app_name):
 
     fabi.sudo('rm -R /home/riaps/riaps_apps/riaps-apps.lmdb/')
     fabi.sudo('rm -R /home/riaps/riaps_apps/'+app_name+'/')
+    fabi.sudo('rm -R /home/riaps/riaps_apps/'+app_name+'*')
     fabi.sudo('userdel ' + app_name.lower() + host_last_4)
 
 @fabi.task

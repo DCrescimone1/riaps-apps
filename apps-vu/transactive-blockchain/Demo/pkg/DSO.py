@@ -14,6 +14,7 @@ from influxdb.client import InfluxDBClientError
 from libs.Grafana.config import Config
 from libs.Grafana.dbase import Database
 import datetime
+import zmq
 
 #from asyncio.log import logger
 
@@ -30,6 +31,9 @@ class DSO(Component):
         self.epoch = t - START_INTERVAL * INTERVAL_LENGTH
 
         self.dbase = Database()
+
+        self.grid = zmq.Context().socket(zmq.REQ)
+        self.grid.bind('tcp://%s' %__GRID__)
 
         logpath = '/tmp/' + logfile + '.log'
         try: os.remove(logpath)
@@ -61,7 +65,14 @@ class DSO(Component):
         self.logger.info('PID(%s) - on_finalizer(): %s',str(self.pid),str(now))
         self.logger.warning("Finalizing interval {}".format(self.next_interval))
         self.contract.finalize(self.account, self.next_interval)
-        self.next_interval += 1   
+        self.stepSim()
+        self.next_interval += 1
+
+
+    def stepSim(self):
+        msg = {"step" : self.next_interval}
+        self.grid.send_pyobj(msg)
+        response = self.grid.recv_pyobj()
 
     def __destroy__(self):
         self.logger.info("(PID %s) - stopping DSO",str(self.pid))

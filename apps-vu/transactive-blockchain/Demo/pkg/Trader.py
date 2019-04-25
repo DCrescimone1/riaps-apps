@@ -16,6 +16,7 @@ from influxdb.client import InfluxDBClientError
 from libs.Grafana.config import Config
 from libs.Grafana.dbase import Database
 import datetime
+import zmq
 
 class Trader(Component):
     def __init__(self,ID,logfile):
@@ -34,8 +35,12 @@ class Trader(Component):
 
         self.role = None
         self.roleID = 0
-        #self.grid = zmq.Context().socket(zmq.PUB)
-        #self.grid.bind('tcp://127.0.0.1:2000')
+
+        self.grid = zmq.Context().socket(zmq.REQ)
+        self.grid.bind('tcp://%s' %__GRID__)
+        self.charge = self.getCharge()
+
+
         self.interval_asks = {}
         self.interval_bids = {}
         self.interval_trades ={}
@@ -66,7 +71,7 @@ class Trader(Component):
             if 'contract' in req:
                 self.logger.info("PID (%s) - on_contractAddr():%s",str(self.pid),str(req))
                 self.epoch = time() - req['time']
-                self.time_interval = int(time() - self.epoch) // INTERVAL_LENGTH
+                self.working_interval = int(time() - self.epoch) // INTERVAL_LENGTH
                 self.contract_address = req['contract']
                 self.logger.info("Contract address: " + self.contract_address)
                 self.logger.info("Setting up connection to Ethereum client...")
@@ -96,7 +101,7 @@ class Trader(Component):
             self.logger.debug("Polling events...")
 
 
-            # if self.time_interval == 28 and self.prosumer_id == 106:
+            # if self.working_interval == 28 and self.prosumer_id == 106:
             #     with open(self.killLog, 'a') as f:
             #         f.write("KILL PROCESS: %s" %time())
             #     self.logger.warning("KILL PROCESS: %s" %time())
@@ -124,32 +129,51 @@ class Trader(Component):
                     self.logger.info("{}({}).".format(name, params))
                 elif name == "Finalized":
                     self.finalized = params['interval']
+                    self.currentInterval = self.finalized - 1
                     self.logger.info("interval finalized : {}".format(self.finalized))
                     self.interval_trades[self.finalized] = [] #List of trades finalized for a given interval
-                    self.time_interval = self.finalized + 1
-                    self.logger.info("time_interval: %s = finalized: %s + 1" %(self.time_interval, self.finalized))
-                    self.dbase.log(self.finalized-2, "interval_now", self.prosumer_id, self.finalized-2)
-                    self.dbase.log(self.time_interval, self.prosumer_id, self.role, 0)
+                    self.working_interval = self.finalized + 1
+                    # self.now =
+                    self.logger.info("working_interval: %s = finalized: %s + 1" %(self.working_interval, self.finalized))
+                    self.dbase.log(self.currentInterval, "interval_now", self.prosumer_id, self.currentInterval)
+                    self.dbase.log(self.working_interval, self.prosumer_id, self.role, 0)
 
 
 
                 elif (name == "TradeFinalized") and ((params['sellerID'] in self.selling_offers) or (params['buyerID'] in self.buying_offers)):
                     self.logger.warning("{}({}).".format(name, params))
-                    time_interval = params['time']
+                    finalized_interval = params['time']
                     power = params['power']
-                    self.interval_trades[time_interval].append(power)
-                    #self.grid.send_pyobj({"interval" : self.finalized, "power": self.roleID*sum(self.interval_trades[self.finalized]), "INTERVAL_LENGTH" : INTERVAL_LENGTH, "time_stamp" : next_actuation})
-                    self.dbase.log(time_interval, self.prosumer_id, self.role, sum(self.interval_trades[time_interval]))
+                    self.interval_trades[finalized_interval].append(power)
+
+                    self.charge = self.updateSim()
+
+                    self.dbase.log(finalized_interval, self.prosumer_id, self.role, sum(self.interval_trades[finalized_interval]))
 
                     self.ack.send_pyobj("%s" %(self.prosumer_id)) #Time Sensitive Messaging
             # self.waste_network()
+
+    def updateSim(self):
+        msg = {"request": "postTrade",
+               "interval": self.finalized,
+               "power" : self.roleID*sum(self.interval_trades[self.finalized])
+               }
+        self.grid.send_pyobj(msg)
+        response = self.grid.recv_pyobj()
+
+        msg = {"request":"charge",
+               "interval": self.now}
+
+        self.grid.send_pyobj(msg)
+        charge = self.grid.recv_pyobj()
+        return charge
 
 
     def on_post(self):
         now = self.post.recv_pyobj()
         self.logger.info('PID(%s) - on_post(): %s',str(self.pid),str(now))
         if self.connected :
-            self.post_offers(self.time_interval)
+            self.post_offers(self.working_interval)
 
     def handleActivate(self):
         with open(self.killLog, 'a') as f:
@@ -195,14 +219,14 @@ class Trader(Component):
                 self.logger.info("query_contract_address: try again")
 
 
-    def post_offers(self, time_interval):
+    def post_offers(self, working_interval):
         remaining_offers = []
-        self.logger.info("Posting offers for interval {}...".format(time_interval))
+        self.logger.info("Posting offers for interval {}...".format(working_interval))
         for offer in self.net_production:
             self.logger.info("energy: %s" %(offer['energy']))
-            if offer['end'] < time_interval: # offer in the past, discard it
+            if offer['end'] < working_interval: # offer in the past, discard it
                 pass
-            elif offer['start'] <= time_interval + PREDICTION_WINDOW: # offer in near future, post it
+            elif offer['start'] <= working_interval + PREDICTION_WINDOW: # offer in near future, post it
                 if offer['energy'] < 0:
                     self.role = "consumer"
                     self.roleID = -1
@@ -217,7 +241,7 @@ class Trader(Component):
                     self.role = "producer"
                     self.roleID = 1
                     self.logger.info("postSellingOffer({}, {}, {}, {})".format(self.prosumer_id, offer['start'], offer['end'], offer['energy']))
-                    self.contract.postSellingOffer(self.account, self.prosumer_id, offer['start'], offer['end'], offer['energy'])
+                    self.contract.postSellingOffer(self.account, self.prosumer_id, offer['start'], offer['end'], offer['energy']+min(self.charge,__RATED_POWER__*__LOGICAL_INTERVAL__))
                     try:
                         self.interval_asks[offer['start']].append(offer['energy'])
                     except KeyError:
