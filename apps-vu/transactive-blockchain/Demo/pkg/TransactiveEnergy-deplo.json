@@ -26,11 +26,11 @@
                     "actuals":[
                         {
                             "name":"ID",
-                            "value":106
+                            "value":102
                         },
                         {
                             "name":"logfile",
-                            "value":"Trader106"
+                            "value":"Trader102"
                         }
                     ],
                     "name":"Trader"

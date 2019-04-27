@@ -33,7 +33,7 @@ class DSO(Component):
         self.dbase = Database()
 
         self.grid = zmq.Context().socket(zmq.REQ)
-        self.grid.bind('tcp://%s' %__GRID__)
+        self.grid.connect('tcp://%s:5555' %(GRID))
 
         logpath = '/tmp/' + logfile + '.log'
         try: os.remove(logpath)
@@ -70,7 +70,7 @@ class DSO(Component):
 
 
     def stepSim(self):
-        msg = {"step" : self.next_interval}
+        msg = {"request" : "step"}
         self.grid.send_pyobj(msg)
         response = self.grid.recv_pyobj()
 

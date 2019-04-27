@@ -36,8 +36,9 @@ class Trader(Component):
         self.role = None
         self.roleID = 0
 
+        print("GRID: %s" %GRID)
         self.grid = zmq.Context().socket(zmq.REQ)
-        self.grid.bind('tcp://%s' %__GRID__)
+        self.grid.connect('tcp://%s:5555' %(GRID))
         self.charge = self.getCharge()
 
 
@@ -138,7 +139,7 @@ class Trader(Component):
                     self.dbase.log(self.currentInterval, "interval_now", self.prosumer_id, self.currentInterval)
                     self.dbase.log(self.working_interval, self.prosumer_id, self.role, 0)
 
-
+                    self.charge = self.getCharge()
 
                 elif (name == "TradeFinalized") and ((params['sellerID'] in self.selling_offers) or (params['buyerID'] in self.buying_offers)):
                     self.logger.warning("{}({}).".format(name, params))
@@ -146,27 +147,31 @@ class Trader(Component):
                     power = params['power']
                     self.interval_trades[finalized_interval].append(power)
 
-                    self.charge = self.updateSim()
+                    self.postTrade()
 
                     self.dbase.log(finalized_interval, self.prosumer_id, self.role, sum(self.interval_trades[finalized_interval]))
 
                     self.ack.send_pyobj("%s" %(self.prosumer_id)) #Time Sensitive Messaging
             # self.waste_network()
 
-    def updateSim(self):
+    def getCharge(self):
+        msg = {"request":"charge",
+               "ID" : str(self.prosumer_id)}
+
+        self.grid.send_pyobj(msg)
+        perUnitCharge = self.grid.recv_pyobj().split(" ")[0][1:]
+        charge = CAPACITY * float(perUnitCharge)
+        print("charge: %s" %charge)
+        return int(charge)
+
+    def postTrade(self):
         msg = {"request": "postTrade",
                "interval": self.finalized,
-               "power" : self.roleID*sum(self.interval_trades[self.finalized])
+               "power" : self.roleID*sum(self.interval_trades[self.finalized]),
+               "ID" : str(self.prosumer_id)
                }
         self.grid.send_pyobj(msg)
         response = self.grid.recv_pyobj()
-
-        msg = {"request":"charge",
-               "interval": self.now}
-
-        self.grid.send_pyobj(msg)
-        charge = self.grid.recv_pyobj()
-        return charge
 
 
     def on_post(self):
@@ -223,7 +228,7 @@ class Trader(Component):
         remaining_offers = []
         self.logger.info("Posting offers for interval {}...".format(working_interval))
         for offer in self.net_production:
-            self.logger.info("energy: %s" %(offer['energy']))
+            self.logger.debug("energy: %s" %(offer['energy']))
             if offer['end'] < working_interval: # offer in the past, discard it
                 pass
             elif offer['start'] <= working_interval + PREDICTION_WINDOW: # offer in near future, post it
@@ -241,16 +246,17 @@ class Trader(Component):
                     self.role = "producer"
                     self.roleID = 1
                     self.logger.info("postSellingOffer({}, {}, {}, {})".format(self.prosumer_id, offer['start'], offer['end'], offer['energy']))
-                    self.contract.postSellingOffer(self.account, self.prosumer_id, offer['start'], offer['end'], offer['energy']+min(self.charge,__RATED_POWER__*__LOGICAL_INTERVAL__))
+                    self.contract.postSellingOffer(self.account, self.prosumer_id, offer['start'], offer['end'], offer['energy']+min(self.charge,int(RATED_POWER*LOGICAL_INTERVAL)))
                     try:
                         self.interval_asks[offer['start']].append(offer['energy'])
                     except KeyError:
                         self.interval_asks[offer['start']] = [offer['energy']]
                     self.dbase.log(offer['start'], self.prosumer_id, "selling", sum(self.interval_asks[offer['start']]))
+                self.logger.info("Offers posted.")
             else: # offer in far future, post it later
                 remaining_offers.append(offer)
             self.net_production = remaining_offers
-            self.logger.info("Offers posted.")
+
 
     def read_data(self, prosumer_id):
         self.logger.info("Reading net production values...")

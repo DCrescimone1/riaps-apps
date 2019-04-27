@@ -14,7 +14,7 @@ recorder=2
 solver=0
 dso=1
 t101=2
-t106=3
+t102=3
 
 #APP PARAMETERS
 # SOLVER=CTRL
@@ -85,13 +85,13 @@ tmux send-keys -t app.$t101 'sudo journalctl -f -u riaps-deplo.service | tee nod
 
 #
 
-tmux select-pane -t app.$t106 -T "Trader 106"
+tmux select-pane -t app.$t102 -T "Trader 102"
 # tmux send-keys -t app.$t106 "sshpass -p 'riaps' ssh $T106" C-m
-tmux send-keys -t app.$t106 "ssh -p $SSHPORT -i $SSHKEY $T106" C-m
+tmux send-keys -t app.$t102 "ssh -p $SSHPORT -i $SSHKEY $T102" C-m
 # tmux send-keys -t app.$t106 'sudo journalctl -f -u riaps-deplo.service --since "10 min ago" | tee peer.log' C-m
-tmux send-keys -t app.$t106 'sudo journalctl --rotate' ENTER
-tmux send-keys -t app.$t106 'sudo journalctl --vacuum-time=1s' C-m
-tmux send-keys -t app.$t106 'sudo journalctl -f -u riaps-deplo.service | tee peer.log' C-m
+tmux send-keys -t app.$t102 'sudo journalctl --rotate' ENTER
+tmux send-keys -t app.$t102 'sudo journalctl --vacuum-time=1s' C-m
+tmux send-keys -t app.$t102 'sudo journalctl -f -u riaps-deplo.service | tee peer.log' C-m
 
 # tmux send-keys -t app.$t106 'sudo journalctl -f -b -u riaps-deplo.service > pre.log' C-m
 
