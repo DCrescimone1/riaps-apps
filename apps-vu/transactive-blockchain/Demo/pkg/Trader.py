@@ -93,7 +93,7 @@ class Trader(Component):
 
     def on_poller(self):
         now = self.poller.recv_pyobj()
-        self.logger.info('PID(%s) - on_poller(): %s',str(self.pid),str(now))
+        self.logger.debug('PID(%s) - on_poller(): %s',str(self.pid),str(now))
 
         if self.connected == 0 :
             self.logger.info('Connected?: %s %s' %(self.connected==1, str(self.pid)))
@@ -139,7 +139,8 @@ class Trader(Component):
                     self.dbase.log(self.currentInterval, "interval_now", self.prosumer_id, self.currentInterval)
                     self.dbase.log(self.working_interval, self.prosumer_id, self.role, 0)
 
-                    self.charge = self.getCharge()
+                    if self.finalized <= END_INTERVAL:
+                        self.charge = self.getCharge()
 
                 elif (name == "TradeFinalized") and ((params['sellerID'] in self.selling_offers) or (params['buyerID'] in self.buying_offers)):
                     self.logger.warning("{}({}).".format(name, params))
@@ -147,7 +148,8 @@ class Trader(Component):
                     power = params['power']
                     self.interval_trades[finalized_interval].append(power)
 
-                    self.postTrade()
+                    if self.finalized <= END_INTERVAL:
+                        self.postTrade()
 
                     self.dbase.log(finalized_interval, self.prosumer_id, self.role, sum(self.interval_trades[finalized_interval]))
 
@@ -161,7 +163,7 @@ class Trader(Component):
         self.grid.send_pyobj(msg)
         perUnitCharge = self.grid.recv_pyobj().split(" ")[0][1:]
         charge = CAPACITY * float(perUnitCharge)
-        print("charge: %s" %charge)
+        self.logger.info("\nCHARGE: %s\n" %charge)
         return int(charge)
 
     def postTrade(self):
@@ -176,8 +178,8 @@ class Trader(Component):
 
     def on_post(self):
         now = self.post.recv_pyobj()
-        self.logger.info('PID(%s) - on_post(): %s',str(self.pid),str(now))
-        if self.connected :
+        if self.connected and self.finalized <= END_INTERVAL:
+            self.logger.debug('PID(%s) - on_post(): %s',str(self.pid),str(now))
             self.post_offers(self.working_interval)
 
     def handleActivate(self):
@@ -226,7 +228,7 @@ class Trader(Component):
 
     def post_offers(self, working_interval):
         remaining_offers = []
-        self.logger.info("Posting offers for interval {}...".format(working_interval))
+        self.logger.debug("Posting offers for interval {}...".format(working_interval))
         for offer in self.net_production:
             self.logger.debug("energy: %s" %(offer['energy']))
             if offer['end'] < working_interval: # offer in the past, discard it
@@ -235,18 +237,30 @@ class Trader(Component):
                 if offer['energy'] < 0:
                     self.role = "consumer"
                     self.roleID = -1
-                    self.logger.info("postBuyingOffer({}, {}, {}, {})".format(self.prosumer_id, offer['start'], offer['end'], -offer['energy']))
-                    self.contract.postBuyingOffer(self.account, self.prosumer_id, offer['start'], offer['end'], -offer['energy'])
+                    powerRequested = -offer['energy']*4 # Wh*15min/60min to W
+                    self.logger.info("postBuyingOffer({}, {}, {}, {})".format(self.prosumer_id, offer['start'], offer['end'],powerRequested))
+                    self.contract.postBuyingOffer(self.account, self.prosumer_id, offer['start'], offer['end'], powerRequested)
                     try:
-                        self.interval_bids[offer['start']].append(offer['energy'])
+                        self.interval_bids[offer['start']].append(-powerRequested)
                     except KeyError:
-                        self.interval_bids[offer['start']] = [offer['energy']]
+                        self.interval_bids[offer['start']] = [-powerRequested]
                     self.dbase.log(offer['start'], self.prosumer_id, "buying", sum(self.interval_bids[offer['start']]))
                 else:
                     self.role = "producer"
                     self.roleID = 1
-                    self.logger.info("postSellingOffer({}, {}, {}, {})".format(self.prosumer_id, offer['start'], offer['end'], offer['energy']))
-                    self.contract.postSellingOffer(self.account, self.prosumer_id, offer['start'], offer['end'], offer['energy']+min(self.charge,int(RATED_POWER*LOGICAL_INTERVAL)))
+
+                    solarPower = offer['energy']*4 # convert Wh*15min/1hr = W
+                    self.logger.info("solarPower: %s" %solarPower)
+                    batteryPower = min(self.charge,int(RATED_POWER*LOGICAL_INTERVAL))*4 # Wh*15min/1hr = W
+                    self.logger.info("self.charge: %s" %self.charge)
+                    self.logger.info("RATED_POWER*LOGICAL_INTERVAL: %s" %(RATED_POWER*LOGICAL_INTERVAL))
+                    self.logger.info("batteryPower: %s" %batteryPower)
+
+                    powerOffered = solarPower+batteryPower
+
+                    self.logger.info("postSellingOffer({}, {}, {}, {})".format(self.prosumer_id, offer['start'], offer['end'], powerOffered))
+                    # self.logger.info("EnergyOffered: %s" %energyOffered)
+                    self.contract.postSellingOffer(self.account, self.prosumer_id, offer['start'], offer['end'], powerOffered)
                     try:
                         self.interval_asks[offer['start']].append(offer['energy'])
                     except KeyError:
@@ -272,7 +286,7 @@ class Trader(Component):
                     data.append({
                         'start': int(fields[0]),
                         'end': int(fields[1]),
-                        'energy': int(1000 * float(fields[2]))
+                        'energy': int(250 * float(fields[2])) #csv in kW, convert to Wh
                         })
                 except Exception:
                     pass

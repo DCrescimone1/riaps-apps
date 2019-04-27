@@ -55,7 +55,7 @@ class Solver(Component):
         self.objective = 0
         self.connected =0
         self.new_offers = False
-        self.solver = MatchingSolver(MICROGRID)
+        self.solver = MatchingSolver(cfg.MICROGRID)
         self.buying_offers = []
         self.selling_offers = []
         self.finalized = -1
@@ -138,18 +138,18 @@ class Solver(Component):
             if 'contract' in req:
                 self.logger.info("PID (%s) - on_contractAddr():%s",str(self.pid),str(req))
                 self.epoch = time() - req['time']
-                self.time_interval = int(time() - self.epoch) // INTERVAL_LENGTH
+                self.time_interval = int(time() - self.epoch) // cfg.INTERVAL_LENGTH
 
                 self.solutions[self.time_interval]={}
 
                 self.contract_address = req['contract']
                 self.logger.info("Contract address: " + self.contract_address)
                 self.logger.info("Setting up connection to Ethereum client...")
-                client = EthereumClient(ip=MINER, port=PORT)
+                client = EthereumClient(ip=cfg.MINER, port=cfg.PORT)
                 self.account = client.accounts()[0] # use the first owned address
                 self.logger.info("Creating contract object...")
                 self.contract = MatchingContract(client, self.contract_address)
-                self.contract.registerProsumer(self.account, prosumer_id, PROSUMER_FEEDER[prosumer_id])
+                # self.contract.registerProsumer(self.account, prosumer_id, cfg.PROSUMER_FEEDER[prosumer_id])
                 self.connected = 1
 
             else :
