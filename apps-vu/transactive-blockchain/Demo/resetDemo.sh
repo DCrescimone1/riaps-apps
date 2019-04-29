@@ -13,6 +13,7 @@ sudo pkill -SIGKILL redis
 fab -f fab/fabfile.py -R ALL kill:TransactiveEnergy
 fab -f fab/fabfile.py -H localhost kill:TransactiveEnergy
 fab -f fab/fabfile.py -R BBBs restartDeplo
+fab -f fab/fabfile.py -R BBBs prunCommand:"sudo rm /tmp/*.log"
 
 
 
