@@ -16,9 +16,9 @@ class TSMrecv(Component):
     def __init__(self, logfile):
         super(TSMrecv, self).__init__()
         self.pid = os.getpid()
-        self.logger.info("(PID %s) - starting TSM receiver",str(self.pid))
+        self.logger.debug("(PID %s) - starting TSM receiver",str(self.pid))
 
-        self.dbase = Database()  
+        self.dbase = Database()
 
         logpath = '/tmp/' + logfile + '.log'
         try: os.remove(logpath)
@@ -28,7 +28,7 @@ class TSMrecv(Component):
         self.fh.setFormatter(self.logformatter)
         self.logger.addHandler(self.fh)
 
-        self.logger.warning("(PID %s) - starting TSM receiver",str(self.pid))
+        self.logger.debug("(PID %s) - starting TSM receiver",str(self.pid))
 
     def on_ack(self):
         '''Time Sensitive Messaging '''
@@ -36,8 +36,8 @@ class TSMrecv(Component):
         self.logger.info("PID (%s) - on_ack():%s",str(self.pid),str(msg))
         sendTime = self.ack.get_sendTime()
         recvTime = self.ack.get_recvTime()
-        self.logger.warning("sendTime: %s, recvTime: %s" %(sendTime, recvTime))
-        self.logger.warning("%s FlightTime: %s" %(msg, recvTime-sendTime))
+        self.logger.debug("sendTime: %s, recvTime: %s" %(sendTime, recvTime))
+        self.logger.debug("%s FlightTime: %s" %(msg, recvTime-sendTime))
         self.dbase.post(now=datetime.datetime.now(), tag_dict={"ID":msg}, seriesName="TSM", value=recvTime-sendTime)
 
     def __destroy__(self):
