@@ -89,7 +89,7 @@ class MQTT(Component):
             self.start()
         payload = json.dumps(msg).encode("utf-8")
         self.logger.info("Publish %s" % (payload),)
-        self.client.publish(topic=self.topic, payload=payload)
+        self.client.publish(topic=self.topic, payload=payload, qos=self.qos)
         
     def on__incoming(self):
         payload = self._incoming.recv_pyobj()
